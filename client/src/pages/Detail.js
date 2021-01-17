@@ -6,7 +6,14 @@ import { QUERY_PRODUCTS } from "../utils/queries";
 import spinner from '../assets/spinner.gif';
 
 import { useStoreContext } from "../utils/GlobalState";
-import { UPDATE_PRODUCTS } from "../utils/actions";
+import { 
+  REMOVE_FROM_CART,
+  UPDATE_CART_QUANTITY,
+  ADD_TO_CART,
+  UPDATE_PRODUCTS 
+} from "../utils/actions";
+
+import Cart from '../components/Cart';
 
 function Detail() {
   // pull state and dispatch out of useStoreContext()
@@ -16,13 +23,38 @@ function Detail() {
   const { id } = useParams();
 
   // state to keep track of currentProduct and to update currentProduct
+  // currentProduct is the state value, setCurrentProduct is what sets the value
   const [currentProduct, setCurrentProduct] = useState({})
 
   // destructure and add result of QUERY_PRODUCTS to data. Set loading to know if data is undefined or not
   const { loading, data } = useQuery(QUERY_PRODUCTS);
 
   // destructure products from state where that data is loaded to use through application
-  const { products } = state;
+  const { products, cart } = state;
+
+  const addToCart = () => {
+    const itemInCart = cart.find((cartItem) => cartItem._id === id);
+
+    if (itemInCart) {
+      dispatch({
+        type: UPDATE_CART_QUANTITY,
+        _id: id,
+        purchaseQuantity: parseInt(itemInCart.purchaseQuantity) + 1
+      });
+    } else{
+      dispatch({
+        type: ADD_TO_CART,
+        product: { ...currentProduct, purchaseQuantity: 1 } 
+      })
+    }
+  };
+
+  const removeFromCart = () => {
+    dispatch({
+      type: REMOVE_FROM_CART,
+      _id: currentProduct._id
+    });
+  };
 
   useEffect(() => {
     // if products has data
@@ -56,10 +88,13 @@ function Detail() {
             <strong>Price:</strong>
             ${currentProduct.price}
             {" "}
-            <button>
+            <button onClick={addToCart}>
               Add to Cart
             </button>
-            <button>
+            <button
+              disabled={!cart.find(p => p._id === currentProduct._id)}
+              onClick={removeFromCart}
+            >
               Remove from Cart
             </button>
           </p>
@@ -73,6 +108,7 @@ function Detail() {
       {
         loading ? <img src={spinner} alt="loading" /> : null
       }
+      <Cart />
     </>
   );
 };
