@@ -3,6 +3,7 @@ import { UPDATE_CATEGORIES, UPDATE_CURRENT_CATEGORY } from '../../utils/actions.
 import { useQuery } from '@apollo/react-hooks';
 import { QUERY_CATEGORIES } from "../../utils/queries";
 import { useStoreContext } from "../../utils/GlobalState";
+import { idbPromise } from '../../utils/helpers';
 
 function CategoryMenu({}) {
   // pull state and dispatch out of useStoreContext()
@@ -12,7 +13,7 @@ function CategoryMenu({}) {
   const { categories } = state;
 
   // create data labeled "categoryData" from the results of useQuery(QUERY_CATEGORIES). Asynchronous function that may take time
-  const { data: categoryData } = useQuery(QUERY_CATEGORIES);
+  const { loading, data: categoryData } = useQuery(QUERY_CATEGORIES);
 
   // Use useeffect to update state whenever categoryData is not longer set to undefined. Runs whenever there is a state change on this component
   useEffect(()=> {
@@ -23,8 +24,19 @@ function CategoryMenu({}) {
         type: UPDATE_CATEGORIES,
         categories: categoryData.categories
       });
+      // store data in browser for offline functionality
+      categoryData.categories.forEach(category => {
+        idbPromise('categories', 'put', category);
+      });
+    } else if (!loading) {
+      idbPromise('categories', 'get').then(categories => {
+        dispatch({
+          type: UPDATE_CATEGORIES,
+          categories: categories
+        });
+      });
     }
-  }, [categoryData, dispatch]);
+  }, [categoryData, loading, dispatch]);
 
   const handleClick = id => {
     dispatch({
